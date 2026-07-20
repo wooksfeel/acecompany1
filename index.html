@@ -4633,21 +4633,6 @@ function initLongPress(){
   target.addEventListener('mouseleave', cancel);
   target.addEventListener('contextmenu', (e)=>{ e.preventDefault(); });
 }
-  }
-  const start = (e)=>{
-    if(e && e.cancelable) e.preventDefault();
-    pressTimer = setTimeout(()=>{ pressTimer=null; doToggle(); }, 800);
-  };
-  const cancel = ()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } };
-  target.addEventListener('touchstart', start, {passive:false});
-  target.addEventListener('touchend', cancel);
-  target.addEventListener('touchcancel', cancel);
-  target.addEventListener('touchmove', cancel);
-  target.addEventListener('mousedown', start);
-  target.addEventListener('mouseup', cancel);
-  target.addEventListener('mouseleave', cancel);
-  target.addEventListener('contextmenu', (e)=>{ e.preventDefault(); });
-}
 
 // 초기화
 // 추첨 30분 전, 아직 응모 안 한 기사님께 알림으로 리마인드 (앱이 켜져있을 때만 동작)
