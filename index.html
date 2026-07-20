@@ -4611,12 +4611,28 @@ function initLongPress(){
       if(cCard){ cCard.style.display = 'block'; renderAdminCumulRanking(); }
       if(oCard){ oCard.style.display = 'block'; renderAdminOffHours(); }
       renderWeeklyGrid();
+      btn.scrollIntoView({behavior:'smooth', block:'center'});
+      alert('관리자 버튼이 나타났습니다! 아래 ⚙️ 관리자 업데이트 버튼을 눌러주세요.');
     } else {
       btn.style.display = 'none';
       if(wCard) wCard.style.display = 'none';
       if(cCard) cCard.style.display = 'none';
       if(oCard) oCard.style.display = 'none';
     }
+  }
+  const start = (e)=>{
+    if(e && e.cancelable) e.preventDefault();
+    pressTimer = setTimeout(()=>{ pressTimer=null; doToggle(); }, 700);
+  };
+  const cancel = ()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } };
+  target.addEventListener('touchstart', start, {passive:false});
+  target.addEventListener('touchend', cancel);
+  target.addEventListener('touchcancel', cancel);
+  target.addEventListener('mousedown', start);
+  target.addEventListener('mouseup', cancel);
+  target.addEventListener('mouseleave', cancel);
+  target.addEventListener('contextmenu', (e)=>{ e.preventDefault(); });
+}
   }
   const start = (e)=>{
     if(e && e.cancelable) e.preventDefault();
