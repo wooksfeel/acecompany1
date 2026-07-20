@@ -805,22 +805,22 @@ const BRANCH_CONFIG = {
   ],
   slotBonusCapPercent: 150, // 이 비율 초과분은 미지급
 
-  // 일일미션보너스: 완료건수 구간별 지급액 (하루 기준)
-  dailyMissionTiers: [
-    {min:30, won:8000},
-    {min:40, won:16000},
-    {min:50, won:24000},
-    {min:60, won:32000},
-    {min:70, won:40000},
+  // ACE 울트라 프로모션: 주간 누적 초과건수 단가 (180건 초과분부터, 251/351건 도달 시 181건째부터 소급 적용)
+  weeklyOverageTiers: [
+    {min:181, price:1500},
+    {min:251, price:1600},
+    {min:351, price:1700},
+    
+    
   ],
 
   // 주간 보너스 지급 조건(gate): 아래 둘 다 충족해야 일일미션/개근/물량보너스 지급
   weeklyGate: { minWeekTotal: 150, minMissionDays: 3 },
 
-  // 개근보너스: 미션 달성일수 구간별 지급액 (내림차순으로 검사)
-  attendBonusTiers: [
-    {minDays:6, won:20000},
-    {minDays:5, won:10000},
+  // 근속수당: 근무일 전부 하루 최소건수 이상 달성 시 근무일수별 지급액
+  tenureBonusTiers: [
+    {minDaily:40, days:{5:30000,6:50000,7:70000}},
+    {minDaily:35, days:{5:20000,6:40000,7:60000}},
   ],
 
   // 물량보너스: 주간 완료건수 구간별 지급액 (내림차순으로 검사)
@@ -904,45 +904,44 @@ function setVal(type, val){
 }
 
 // 오늘 미션 현황 카드 - 단일 소스 (완료 건수 하나만 받아서 화면을 그림)
-function updateGoalCard(todayC){
-  todayC = todayC || 0;
-  const GOALS = BRANCH_CONFIG.dailyMissionTiers.map(t=>t.min);
-  const curGoal = GOALS.slice().reverse().find(g => todayC >= g);
-  const nextGoal = GOALS.find(g => todayC < g) || 70;
+function updateGoalCard(weekTotal){
+  weekTotal = weekTotal || 0;
+  const TIERS = BRANCH_CONFIG.weeklyOverageTiers;
+  const mins = TIERS.map(t=>t.min);
+  const curGoal = mins.slice().reverse().find(g => weekTotal >= g);
+  const nextGoal = mins.find(g => weekTotal < g) || mins[mins.length-1];
   let pct;
   if(curGoal){
-    const prevGoal = GOALS[GOALS.indexOf(curGoal)-1] || 0;
-    pct = Math.min(((todayC-prevGoal)/(nextGoal-prevGoal))*100, 100);
-    if(todayC >= nextGoal) pct = 100;
+    const prevGoal = mins[mins.indexOf(curGoal)-1] || 0;
+    pct = Math.min(((weekTotal-prevGoal)/(nextGoal-prevGoal))*100, 100);
+    if(weekTotal >= nextGoal) pct = 100;
   } else {
-    pct = Math.min(todayC/nextGoal*100, 100);
+    pct = Math.min(weekTotal/nextGoal*100, 100);
   }
   const curEl = document.getElementById('goal-current');
   const tarEl = document.getElementById('goal-target');
   const barEl = document.getElementById('goal-bar');
-  if(curEl) curEl.textContent = todayC;
+  if(curEl) curEl.textContent = weekTotal;
   if(tarEl) tarEl.textContent = nextGoal;
   if(barEl) barEl.style.width = pct+'%';
   const msEl = document.getElementById('goal-milestones');
   if(msEl){
-    const labels = [{g:30,w:'8천'},{g:40,w:'1.6만'},{g:50,w:'2.4만'},{g:60,w:'3.2만'},{g:70,w:'4만'}];
+    const labels = TIERS.map(t=>({g:t.min,w:t.price.toLocaleString()+'원/건'}));
     msEl.innerHTML = labels.map(({g,w})=>{
-      const done = todayC>=g;
+      const done = weekTotal>=g;
       const bg=done?'#1D9E75':'#F0F0F0'; const tc=done?'#fff':'#aaa'; const tc2=done?'#fff':'#bbb';
       return '<div style="text-align:center;padding:5px 2px;border-radius:6px;background:'+bg+'">'
         +'<div style="font-size:10px;color:'+tc+'">'+g+'건</div>'
         +'<div style="font-size:11px;font-weight:700;color:'+tc2+'">'+w+'</div>'
-        +'<div style="font-size:12px">'+(done?'✅':'⬜')+'</div></div>';
+        +'<div style="font-size:12px">'+(done?'✅':'🔒')+'</div></div>';
     }).join('');
   }
   const msgEl = document.getElementById('goal-message');
   if(msgEl){
-    if(todayC>=70) msgEl.textContent='🎉 최고 미션 달성!';
-    else if(todayC>=60) msgEl.textContent='70건까지 '+(70-todayC)+'건 남았어요!';
-    else if(todayC>=50) msgEl.textContent='60건까지 '+(60-todayC)+'건 남았어요!';
-    else if(todayC>=40) msgEl.textContent='50건까지 '+(50-todayC)+'건 남았어요!';
-    else if(todayC>=30) msgEl.textContent='40건까지 '+(40-todayC)+'건 남았어요!';
-    else msgEl.textContent='30건까지 '+(30-todayC)+'건 남았어요! 화이팅!';
+    if(weekTotal>=351) msgEl.textContent='🎉 최고 단가 달성! (건당 1,700원)';
+    else if(weekTotal>=251) msgEl.textContent='351건까지 '+(351-weekTotal)+'건 남았어요! (달성 시 건당 1,700원)';
+    else if(weekTotal>=181) msgEl.textContent='251건까지 '+(251-weekTotal)+'건 남았어요! (달성 시 건당 1,600원)';
+    else msgEl.textContent='181건까지 '+(181-weekTotal)+'건 남았어요! 화이팅!';
   }
 }
 
@@ -965,8 +964,7 @@ function autoSave(){
   renderResult(rec);
   updateTodayIncome(rec);
   updateBonusCalc(rec);
-  // 오늘 미션현황 즉시 업데이트 (완료 카운터와 항상 동일한 값 사용)
-  updateGoalCard(cnt.complete);
+  
 }
 
 function resetToday(){
@@ -979,18 +977,17 @@ function resetToday(){
 
 function updateBonusCalc(rec){
   if(!rec) return;
-  // 오늘 하루 완료건 (오늘 미션현황용)
+  // 오늘 하루 완료건 (참고용)
   const todayComplete = rec.todayComplete || rec.complete || 0;
 
-  // 주간(수~화) 실제 하루하루 기록을 직접 훑어서 계산합니다.
-  // (평균으로 구간 하나를 정해 곱하는 게 아니라, 그날그날 구간을 각각 적용해서 더합니다)
+  // 주간(수~화) 실제 하루하루 기록을 직접 훑어서 계산합니다
   const {start} = getWeekRange(0);
-  const GOALS = BRANCH_CONFIG.dailyMissionTiers.map(t=>t.min);
-  const TIER_BONUS = {}; BRANCH_CONFIG.dailyMissionTiers.forEach(t=>TIER_BONUS[t.min]=t.won);
 
   let weekTotal = 0;      // 그 주(수~화) 완료건 합계
-  let missionDays = 0;    // 하루 30건↑ 미션을 달성한 날 수
-  let dailyMissionSum = 0;// 그날그날 구간 보너스를 각각 더한 값
+  let missionDays = 0;    // 하루 30건↑ 달성한 날 수 (물량보너스 게이트용)
+  let workedDays = 0;     // 그 주 근무한(완료>0) 날 수
+  let daysAt40 = 0;       // 하루 40건↑ 달성한 날 수
+  let daysAt35 = 0;       // 하루 35건↑ 달성한 날 수
 
   for(let i=0;i<7;i++){
     const d = new Date(start); d.setUTCDate(start.getUTCDate()+i);
@@ -998,45 +995,56 @@ function updateBonusCalc(rec){
     const dayComplete = dayRec ? (parseInt(dayRec.complete)||0) : 0;
     if(dayComplete <= 0) continue;
     weekTotal += dayComplete;
-    const tier = GOALS.slice().reverse().find(g => dayComplete >= g);
-    if(tier){
-      missionDays++;
-      dailyMissionSum += TIER_BONUS[tier];
+    workedDays++;
+    if(dayComplete >= 30) missionDays++;
+    if(dayComplete >= 40) daysAt40++;
+    if(dayComplete >= 35) daysAt35++;
+  }
+
+  // ACE 울트라 프로모션 - 초과건수 단가: 180건 초과분부터, 251/351건 도달 시 181건째부터 소급 적용
+  const overageBase = Math.min(...BRANCH_CONFIG.weeklyOverageTiers.map(t=>t.min)) - 1;
+  const overageTier = [...BRANCH_CONFIG.weeklyOverageTiers].sort((a,b)=>b.min-a.min).find(t=>weekTotal>=t.min);
+  const excessCount = Math.max(0, weekTotal - overageBase);
+  const mission = overageTier ? excessCount * overageTier.price : 0;
+
+  // 근속수당: 그 주 근무일 전부가 하루 40건↑(또는 35건↑) 달성했고, 근무일수 5일 이상일 때 지급
+  let attend = 0;
+  if(workedDays >= 5){
+    const dailyLevel = (daysAt40 === workedDays) ? 40 : (daysAt35 === workedDays) ? 35 : 0;
+    if(dailyLevel > 0){
+      const row = BRANCH_CONFIG.tenureBonusTiers.find(t=>t.minDaily===dailyLevel);
+      const dayBucket = Math.min(workedDays, 7);
+      if(row) attend = row.days[dayBucket] || 0;
     }
   }
 
-  // 주간보너스 지급 조건: 주 150건 이상 AND 일 30건↑ 미션 달성일 3일 이상
-  // 둘 다 만족해야 일일미션보너스+개근보너스+물량보너스가 지급됩니다.
-  // (심야보너스·누적이벤트는 이 조건과 무관하게 별도로 지급됩니다)
+  // 물량보너스 (기존 유지): 주 150건 이상 AND 일 30건↑ 미션 달성일 3일 이상
   const eligible = weekTotal >= BRANCH_CONFIG.weeklyGate.minWeekTotal && missionDays >= BRANCH_CONFIG.weeklyGate.minMissionDays;
-
-  const mission = eligible ? dailyMissionSum : 0;
-  // 개근보너스: 근무일수가 아니라 "미션(30건↑) 달성일수" 기준
-  const attend = eligible ? (BRANCH_CONFIG.attendBonusTiers.find(t=>missionDays>=t.minDays)||{won:0}).won : 0;
   const vol = eligible ? (BRANCH_CONFIG.volumeBonusTiers.find(t=>weekTotal>=t.minTotal)||{won:0}).won : 0;
+
   const extra = attend + vol;
   const total = mission + extra;
 
   // 다음 목표 팁
-  let tip = '';
-  if(!eligible){
-    if(weekTotal < 150){
-      tip = `주간보너스 대상까지 ${150-weekTotal}건 더 필요해요 (주 150건 이상)`;
-    } else {
-      tip = `주간보너스까지 미션(30건↑) 달성일 ${Math.max(0,3-missionDays)}일 더 필요해요 (현재 ${missionDays}일)`;
-    }
-  } else {
-    const parts = [];
-    if(missionDays < 6){
-      parts.push(`개근보너스(2만원)까지 미션달성일 ${6-missionDays}일 더 필요`);
-    }
-    const nextVol = weekTotal < 350 ? 350 : weekTotal < 400 ? 400 : weekTotal < 450 ? 450 : 0;
-    if(nextVol > 0){
-      const volBonus = nextVol===350?20000:nextVol===400?30000:50000;
-      parts.push(`물량보너스까지 ${nextVol-weekTotal}건 더 필요 (${volBonus.toLocaleString()}원)`);
-    }
-    tip = parts.join(' · ');
+  const parts = [];
+  const sortedAsc = [...BRANCH_CONFIG.weeklyOverageTiers].sort((a,b)=>a.min-b.min);
+  const nextOverage = sortedAsc.find(t=>weekTotal < t.min);
+  if(nextOverage){
+    parts.push(`다음 단가(건당 ${nextOverage.price.toLocaleString()}원)까지 ${nextOverage.min-weekTotal}건 더 필요해요`);
   }
+  if(workedDays < 5){
+    parts.push(`근속수당까지 근무일 ${5-workedDays}일 더 필요해요`);
+  } else {
+    const dailyLevel = (daysAt40 === workedDays) ? 40 : (daysAt35 === workedDays) ? 35 : 0;
+    if(dailyLevel === 0) parts.push('근속수당까지 근무일 전부 하루 35건↑ 필요해요');
+    else if(dailyLevel === 35) parts.push('근속수당 단가를 올리려면 근무일 전부 하루 40건↑ 필요해요');
+  }
+  const nextVol = weekTotal < 350 ? 350 : weekTotal < 400 ? 400 : weekTotal < 450 ? 450 : 0;
+  if(nextVol > 0){
+    const volBonus = nextVol===350?20000:nextVol===400?30000:50000;
+    parts.push(`물량보너스까지 ${nextVol-weekTotal}건 더 필요 (${volBonus.toLocaleString()}원)`);
+  }
+  const tip = parts.join(' · ');
 
   const mEl = document.getElementById('calc-mission');
   const aEl = document.getElementById('calc-attend');
@@ -1047,8 +1055,8 @@ function updateBonusCalc(rec){
   if(tEl) tEl.textContent = total.toLocaleString()+'원';
   if(tipEl) tipEl.textContent = tip;
 
-  // 오늘 미션현황 - 오늘 완료건 기준 (단일 함수로 위임)
-  updateGoalCard(todayComplete);
+  // 오늘 미션현황 - 이번주 누적 완료건 기준 (ACE 울트라 프로모션)
+  updateGoalCard(weekTotal);
 }
 
 function renderResult(rec){
