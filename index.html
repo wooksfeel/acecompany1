@@ -779,20 +779,20 @@ const CELEBRATION = {
 // ════════════════════════════════════════════════════════════════
 const BRANCH_CONFIG = {
   // 지사 이름 (앱 상단에는 안 쓰이지만, 참고용)
-  branchName: 'RIDER UNITED',
+  branchName: 'ACE COMPANY',
 
   // 지사 운영 시작일 (누적콜 집계 시작 기준 주, 수요일 날짜로)
   cumulStartWeekKey: '2026-07-01',
 
   // 기본 세트수 (지사현황 목표치 계산에 쓰이는 배율)
-  defaultSetCount: 9,
+  defaultSetCount: 7,
 
   // 4구간 슬롯별 요일별 목표치 (세트수 곱하기 전, 1세트 기준)
   slots: [
-    {key:'lunch',    name:'점심피크',   time:'평일 10:00~12:59 / 주말 10:00~13:59', color:'#EF9F27', targets:{월:22,화:22,수:22,목:22,금:25,토:31,일:32}},
-    {key:'afternoon',name:'오후논피크', time:'평일 13:00~16:59 / 주말 14:00~16:59', color:'#378ADD', targets:{월:21,화:21,수:21,목:21,금:22,토:23,일:24}},
-    {key:'evening',  name:'저녁피크',   time:'17:00~19:59',                        color:'#E24B4A', targets:{월:32,화:32,수:32,목:32,금:34,토:38,일:37}},
-    {key:'night',    name:'심야논피크', time:'20:00~23:59',                        color:'#534AB7', targets:{월:25,화:25,수:25,목:25,금:29,토:28,일:27}}
+    {key:'lunch',    name:'오전', time:'평일 06:00~12:59 / 주말 06:00~13:59', color:'#EF9F27', targets:{월:21,화:21,수:21,목:21,금:24,토:31,일:33}},
+    {key:'afternoon',name:'오후', time:'평일 13:00~16:59 / 주말 14:00~16:59', color:'#378ADD', targets:{월:20,화:20,수:20,목:20,금:21,토:22,일:22}},
+    {key:'evening',  name:'저녁', time:'17:00~19:59',                        color:'#E24B4A', targets:{월:30,화:30,수:30,목:30,금:32,토:36,일:35}},
+    {key:'night',    name:'심야', time:'20:00~02:59',                        color:'#534AB7', targets:{월:29,화:29,수:29,목:29,금:33,토:31,일:30}}
   ],
 
   // 지사 초과보너스: 처리건수/목표건수 비율 구간별 건당 단가 (100~150% 구간)
@@ -839,10 +839,10 @@ const BRANCH_CONFIG = {
   // 행운 추첨: 요일(0=일~6=토)과 마감 시각
   lotteryDrawDays: [2,4,6], // 화·목·토
   lotteryDrawHour: 14,       // 오후 2시
-  lotteryExcludedNames: ['이규환'], // 응모는 되지만 당첨은 제외할 이름(지사장 등)
+  lotteryExcludedNames: [], // 응모는 되지만 당첨은 제외할 이름(지사장 등) - 필요시 이름 넣으세요
 
-  // 관리자 비밀번호 (현재 UI에서는 5회 탭으로 진입해서 사실상 미사용이지만 남겨둠)
-  adminPassword: '1234',
+  // 관리자 비밀번호
+  adminPassword: '0220',
 };
 
 const SLOTS = BRANCH_CONFIG.slots;
