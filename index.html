@@ -4595,6 +4595,9 @@ function initLongPress(){
   const titleEl = document.querySelector('.header-title');
   const target = titleEl ? titleEl.parentElement : null;
   if(!target) return;
+  target.style.webkitUserSelect = 'none';
+  target.style.userSelect = 'none';
+  target.style.webkitTouchCallout = 'none';
   let pressTimer = null;
   function doToggle(){
     const btn = document.getElementById('admin-btn');
@@ -4615,14 +4618,19 @@ function initLongPress(){
       if(oCard) oCard.style.display = 'none';
     }
   }
-  const start = ()=>{ pressTimer = setTimeout(()=>{ pressTimer=null; doToggle(); }, 1000); };
+  const start = (e)=>{
+    if(e && e.cancelable) e.preventDefault();
+    pressTimer = setTimeout(()=>{ pressTimer=null; doToggle(); }, 800);
+  };
   const cancel = ()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } };
-  target.addEventListener('touchstart', start, {passive:true});
+  target.addEventListener('touchstart', start, {passive:false});
   target.addEventListener('touchend', cancel);
   target.addEventListener('touchcancel', cancel);
+  target.addEventListener('touchmove', cancel);
   target.addEventListener('mousedown', start);
   target.addEventListener('mouseup', cancel);
   target.addEventListener('mouseleave', cancel);
+  target.addEventListener('contextmenu', (e)=>{ e.preventDefault(); });
 }
 
 // 초기화
