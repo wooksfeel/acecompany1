@@ -301,7 +301,7 @@ input[type=number]{-moz-appearance:textfield}
               <span style="font-size:11px;color:#888">근무일수 <span id="tenure-days" style="font-weight:700;color:#F08C00">0</span>일</span>
               <span style="font-size:11px;color:#888">일일 달성기준 <span id="tenure-level" style="font-weight:700;color:#F08C00">-</span></span>
             </div>
-            <div id="tenure-milestones" style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-bottom:6px"></div>
+                        <div id="tenure-milestones" style="margin-bottom:6px"></div>
             <div style="text-align:center;font-size:11px;color:#888" id="tenure-message"></div>
           </div>
     </div>
@@ -961,19 +961,24 @@ function updateGoalCard(weekTotal, tenure){
         const dailyLevel = t.dailyLevel || 0;
         tDaysEl.textContent = workedDays;
         if(tLevelEl) tLevelEl.textContent = dailyLevel ? dailyLevel+'건↑' : '-';
-        if(tMsEl){
-          const activeRow = dailyLevel ? BRANCH_CONFIG.tenureBonusTiers.find(r=>r.minDaily===dailyLevel) : null;
-          const baseRow = BRANCH_CONFIG.tenureBonusTiers[BRANCH_CONFIG.tenureBonusTiers.length-1];
-          tMsEl.innerHTML = [5,6,7].map(d=>{
-            const done = !!(activeRow && workedDays>=d);
-            const won = (activeRow||baseRow).days[d] || 0;
+              if(tMsEl){
+        const rows = [35,40].map(lvl=>({lvl, row: BRANCH_CONFIG.tenureBonusTiers.find(r=>r.minDaily===lvl)}));
+        tMsEl.innerHTML = rows.map(({lvl,row})=>{
+          if(!row) return '';
+          const cells = [5,6,7].map(d=>{
+            const done = dailyLevel>=lvl && workedDays>=d;
+            const won = row.days[d] || 0;
             const bg = done?'#FFF3E0':'#F0F0F0', tc2 = done?'#F08C00':'#aaa';
             return '<div style="text-align:center;padding:5px 2px;border-radius:6px;background:'+bg+'">'
               +'<div style="font-size:10px;color:#888">'+d+'일</div>'
               +'<div style="font-size:11px;font-weight:700;color:'+tc2+'">'+won.toLocaleString()+'원</div>'
               +'<div style="font-size:12px">'+(done?'✅':'🔒')+'</div></div>';
           }).join('');
-        }
+          return '<div style="margin-bottom:4px">'
+            +'<div style="font-size:10px;color:#888;margin-bottom:2px">하루 '+lvl+'건↑</div>'
+            +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px">'+cells+'</div></div>';
+        }).join('');
+      }
         if(tMsgEl){
           if(workedDays < 5) tMsgEl.textContent = `근속수당까지 근무 ${5-workedDays}일 더 필요해요`;
           else if(dailyLevel === 0) tMsgEl.textContent = '근속수당까지 근무일 전부 하루 35건↑ 필요해요';
