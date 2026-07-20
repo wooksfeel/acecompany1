@@ -1990,6 +1990,8 @@ function loadSetCount(){
 }
 
 function showAdmin(){
+  const pw = prompt('관리자 비밀번호를 입력하세요');
+  if(pw !== ADMIN_PW){ if(pw !== null) alert('비밀번호가 틀렸습니다'); return; }
   document.getElementById('admin-overlay').classList.add('open');
   // 비번 없이 바로 입력 화면
   document.getElementById('admin-login-section').style.display='none';
