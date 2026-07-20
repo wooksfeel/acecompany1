@@ -474,7 +474,7 @@ input[type=number]{-moz-appearance:textfield}
         <div id="weekly-grid" style="min-width:280px"></div>
       </div>
     </div>
-    <button class="btn-admin" id="admin-btn" onclick="showAdmin()" style="display:none"><i class="ti ti-settings"></i> 관리자 업데이트</button>
+                      <button class="btn-admin" id="admin-btn" onclick="showAdmin()" style="display:flex"><i class="ti ti-settings"></i> 관리자 업데이트</button>
   </div>
 </div>
 
@@ -2048,6 +2048,15 @@ function showAdmin(){
   document.getElementById('admin-login-section').style.display='none';
   document.getElementById('admin-input-section').style.display='block';
   // 세트수 표시 업데이트
+  // 지사현황 탭의 관리자 영역도 함께 표시
+  const aBtn = document.getElementById('admin-btn');
+  if(aBtn) aBtn.style.display = 'flex';
+  const wCard = document.getElementById('weekly-grid-card');
+  if(wCard){ wCard.style.display = 'block'; renderWeeklyGrid(); }
+  const cCard = document.getElementById('admin-cumul-ranking-card');
+  if(cCard){ cCard.style.display = 'block'; renderAdminCumulRanking(); }
+  const oCard = document.getElementById('admin-offhours-card');
+  if(oCard){ oCard.style.display = 'block'; renderAdminOffHours(); }
   const scEl = document.getElementById('set-count-display');
   if(scEl) scEl.textContent = getSetCount();
   // 주간 보너스 정산 업로드 슬롯 초기화 (저장해둔 임시 자료가 있으면 자동 복원됨)
