@@ -2931,8 +2931,6 @@ function sumHourlyRange(hourly, startHour, endHour){
 function computeWeeklySettlement(dayArrays, surpriseMissions){
   // dayArrays: [{dayLabel:'수요일', riders:[{id,name,phone,complete,night},...]}, ...] (최대 7개, 없는 요일은 생략 가능)
   // surpriseMissions: [{dayLabel, startHour, endHour, target, unitPrice, description}, ...] (선택, 관리자가 설정한 깜짝미션)
-  const GOALS = BRANCH_CONFIG.dailyMissionTiers.map(t=>t.min);
-  const TIER_BONUS = {}; BRANCH_CONFIG.dailyMissionTiers.forEach(t=>TIER_BONUS[t.min]=t.won);
   surpriseMissions = surpriseMissions || [];
 
   // 같은 사람을 "이름+전화번호"로 먼저 묶습니다 (아이디만 보고 묶으면, 어떤 날짜 파일에는
@@ -2970,17 +2968,24 @@ function computeWeeklySettlement(dayArrays, surpriseMissions){
         return;
       }
       weekTotal += d.complete;
-      const tier = GOALS.slice().reverse().find(g => d.complete >= g) || 0;
-      const won = tier ? TIER_BONUS[tier] : 0;
-      if(tier){ missionDays++; dailyMissionSum += won; }
-      breakdown.push({dayLabel:d.dayLabel, complete:d.complete, tier, won});
+      missionDays++;
+      breakdown.push({dayLabel:d.dayLabel, complete:d.complete, tier:0, won:0});
     });
 
     const acceptRate = acceptDenomSum > 0 ? Math.round(acceptCompleteSum/acceptDenomSum*1000)/10 : null;
 
     const eligible = weekTotal >= BRANCH_CONFIG.weeklyGate.minWeekTotal && missionDays >= BRANCH_CONFIG.weeklyGate.minMissionDays;
-    const mission = eligible ? dailyMissionSum : 0;
-    const attend = eligible ? (BRANCH_CONFIG.attendBonusTiers.find(t=>missionDays>=t.minDays)||{won:0}).won : 0;
+    const overageBase = BRANCH_CONFIG.weeklyOverageTiers[0].min - 1;
+    const overageTier = BRANCH_CONFIG.weeklyOverageTiers.slice().reverse().find(t=>weekTotal>=t.min);
+    const mission = eligible && overageTier ? (weekTotal - overageBase) * overageTier.price : 0;
+    const dailyCounts = rider.days.map(d=>d.complete);
+    const attend = eligible ? BRANCH_CONFIG.tenureBonusTiers.reduce((best,t)=>{
+      if(best) return best;
+      const qualifyDays = dailyCounts.filter(c=>c>=t.minDaily).length;
+      const brackets = Object.keys(t.days).map(Number).sort((a,b)=>b-a);
+      const hit = brackets.find(b=>qualifyDays>=b);
+      return hit ? t.days[hit] : 0;
+    }, 0) : 0;
     const vol = eligible ? (BRANCH_CONFIG.volumeBonusTiers.find(t=>weekTotal>=t.minTotal)||{won:0}).won : 0;
     const night = (BRANCH_CONFIG.nightBonusTiers.find(t=>nightTotal>=t.minCount)||{won:0}).won;
 
@@ -3587,8 +3592,6 @@ function mergeSettlementAdminEntries(idxCsv){
   const entries = indices.map(i => all[i]).filter(Boolean);
   if(entries.length < 2) return;
 
-  const GOALS = BRANCH_CONFIG.dailyMissionTiers.map(t=>t.min);
-  const TIER_BONUS = {}; BRANCH_CONFIG.dailyMissionTiers.forEach(t=>TIER_BONUS[t.min]=t.won);
 
   // 요일별 완료건수를 다시 모음 (겹치는 요일이 있으면 혹시 몰라 더함)
   const dayMap = {};
@@ -3600,20 +3603,28 @@ function mergeSettlementAdminEntries(idxCsv){
   const phone = entries.map(e=>e.phone).find(p=>p) || '';
   const id = entries.map(e=>e.id).find(v=>v) || '';
 
-  let weekTotal = 0, missionDays = 0, dailyMissionSum = 0;
+  let weekTotal = 0, missionDays = 0;
+  const dailyCounts = [];
   const breakdown = SETTLEMENT_DAY_LABELS.filter(d => dayMap[d] !== undefined).map(dayLabel=>{
     const complete = dayMap[dayLabel];
+    dailyCounts.push(complete);
     if(complete <= 0) return {dayLabel, complete, tier:0, won:0};
     weekTotal += complete;
-    const tier = GOALS.slice().reverse().find(g => complete >= g) || 0;
-    const won = tier ? TIER_BONUS[tier] : 0;
-    if(tier){ missionDays++; dailyMissionSum += won; }
-    return {dayLabel, complete, tier, won};
+    missionDays++;
+    return {dayLabel, complete, tier:0, won:0};
   });
 
   const eligible = weekTotal >= BRANCH_CONFIG.weeklyGate.minWeekTotal && missionDays >= BRANCH_CONFIG.weeklyGate.minMissionDays;
-  const mission = eligible ? dailyMissionSum : 0;
-  const attend = eligible ? (BRANCH_CONFIG.attendBonusTiers.find(t=>missionDays>=t.minDays)||{won:0}).won : 0;
+  const overageBase = BRANCH_CONFIG.weeklyOverageTiers[0].min - 1;
+  const overageTier = BRANCH_CONFIG.weeklyOverageTiers.slice().reverse().find(t=>weekTotal>=t.min);
+  const mission = eligible && overageTier ? (weekTotal - overageBase) * overageTier.price : 0;
+  const attend = eligible ? BRANCH_CONFIG.tenureBonusTiers.reduce((best,t)=>{
+    if(best) return best;
+    const qualifyDays = dailyCounts.filter(c=>c>=t.minDaily).length;
+    const brackets = Object.keys(t.days).map(Number).sort((a,b)=>b-a);
+    const hit = brackets.find(b=>qualifyDays>=b);
+    return hit ? t.days[hit] : 0;
+  }, 0) : 0;
   const vol = eligible ? (BRANCH_CONFIG.volumeBonusTiers.find(t=>weekTotal>=t.minTotal)||{won:0}).won : 0;
   const night = (BRANCH_CONFIG.nightBonusTiers.find(t=>nightTotal>=t.minCount)||{won:0}).won;
   const total = mission + attend + vol + night;
