@@ -295,6 +295,15 @@ input[type=number]{-moz-appearance:textfield}
       </div>
       <div id="goal-milestones" style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px"></div>
       <div style="margin-top:5px;text-align:center;font-size:11px;color:#888" id="goal-message"></div>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid #eee">
+            <div style="font-size:12px;font-weight:600;color:#333;margin-bottom:6px">🔥 근속수당</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-size:11px;color:#888">근무일수 <span id="tenure-days" style="font-weight:700;color:#F08C00">0</span>일</span>
+              <span style="font-size:11px;color:#888">일일 달성기준 <span id="tenure-level" style="font-weight:700;color:#F08C00">-</span></span>
+            </div>
+            <div id="tenure-milestones" style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-bottom:6px"></div>
+            <div style="text-align:center;font-size:11px;color:#888" id="tenure-message"></div>
+          </div>
     </div>
 
 
@@ -349,7 +358,7 @@ input[type=number]{-moz-appearance:textfield}
     </div>
 
     <!-- 주간 심야 미션 -->
-    <div class="card" id="night-mission-card">
+    <div class="card" id="night-mission-card" style="display:none">
       <div class="card-title">🌙 주간 심야 미션 (22:00~23:59)</div>
       <div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -831,10 +840,7 @@ const BRANCH_CONFIG = {
   ],
 
   // 심야보너스: 22~23시 완료건수 구간별 지급액 (gate 무관, 내림차순으로 검사)
-  nightBonusTiers: [
-    {minCount:30, won:30000},
-    {minCount:15, won:15000},
-  ],
+nightBonusTiers: [], // 우리 지사는 심야미션 없음
 
   // 행운 추첨: 요일(0=일~6=토)과 마감 시각
   lotteryDrawDays: [2,4,6], // 화·목·토
@@ -904,7 +910,7 @@ function setVal(type, val){
 }
 
 // 오늘 미션 현황 카드 - 단일 소스 (완료 건수 하나만 받아서 화면을 그림)
-function updateGoalCard(weekTotal){
+function updateGoalCard(weekTotal, tenure){
   weekTotal = weekTotal || 0;
   const TIERS = BRANCH_CONFIG.weeklyOverageTiers;
   const mins = TIERS.map(t=>t.min);
@@ -943,6 +949,38 @@ function updateGoalCard(weekTotal){
     else if(weekTotal>=181) msgEl.textContent='251건까지 '+(251-weekTotal)+'건 남았어요! (달성 시 건당 1,600원)';
     else msgEl.textContent='181건까지 '+(181-weekTotal)+'건 남았어요! 화이팅!';
   }
+
+      // 근속수당 표시
+      const tDaysEl = document.getElementById('tenure-days');
+      const tLevelEl = document.getElementById('tenure-level');
+      const tMsEl = document.getElementById('tenure-milestones');
+      const tMsgEl = document.getElementById('tenure-message');
+      if(tDaysEl){
+        const t = tenure || {};
+        const workedDays = t.workedDays || 0;
+        const dailyLevel = t.dailyLevel || 0;
+        tDaysEl.textContent = workedDays;
+        if(tLevelEl) tLevelEl.textContent = dailyLevel ? dailyLevel+'건↑' : '-';
+        if(tMsEl){
+          const activeRow = dailyLevel ? BRANCH_CONFIG.tenureBonusTiers.find(r=>r.minDaily===dailyLevel) : null;
+          const baseRow = BRANCH_CONFIG.tenureBonusTiers[BRANCH_CONFIG.tenureBonusTiers.length-1];
+          tMsEl.innerHTML = [5,6,7].map(d=>{
+            const done = !!(activeRow && workedDays>=d);
+            const won = (activeRow||baseRow).days[d] || 0;
+            const bg = done?'#FFF3E0':'#F0F0F0', tc2 = done?'#F08C00':'#aaa';
+            return '<div style="text-align:center;padding:5px 2px;border-radius:6px;background:'+bg+'">'
+              +'<div style="font-size:10px;color:#888">'+d+'일</div>'
+              +'<div style="font-size:11px;font-weight:700;color:'+tc2+'">'+won.toLocaleString()+'원</div>'
+              +'<div style="font-size:12px">'+(done?'✅':'🔒')+'</div></div>';
+          }).join('');
+        }
+        if(tMsgEl){
+          if(workedDays < 5) tMsgEl.textContent = `근속수당까지 근무 ${5-workedDays}일 더 필요해요`;
+          else if(dailyLevel === 0) tMsgEl.textContent = '근속수당까지 근무일 전부 하루 35건↑ 필요해요';
+          else if(dailyLevel === 35) tMsgEl.textContent = '근속수당 달성 중! 하루 40건↑ 올리면 단가가 더 올라가요';
+          else tMsgEl.textContent = '최고 단가 근속수당 달성 중이에요! 화이팅';
+        }
+      }
 }
 
 function autoSave(){
@@ -1008,9 +1046,10 @@ function updateBonusCalc(rec){
   const mission = overageTier ? excessCount * overageTier.price : 0;
 
   // 근속수당: 그 주 근무일 전부가 하루 40건↑(또는 35건↑) 달성했고, 근무일수 5일 이상일 때 지급
-  let attend = 0;
-  if(workedDays >= 5){
-    const dailyLevel = (daysAt40 === workedDays) ? 40 : (daysAt35 === workedDays) ? 35 : 0;
+let attend = 0;
+      let dailyLevel = 0;
+      if(workedDays >= 5){
+              dailyLevel = (daysAt40 === workedDays) ? 40 : (daysAt35 === workedDays) ? 35 : 0;
     if(dailyLevel > 0){
       const row = BRANCH_CONFIG.tenureBonusTiers.find(t=>t.minDaily===dailyLevel);
       const dayBucket = Math.min(workedDays, 7);
@@ -1056,7 +1095,7 @@ function updateBonusCalc(rec){
   if(tipEl) tipEl.textContent = tip;
 
   // 오늘 미션현황 - 이번주 누적 완료건 기준 (ACE 울트라 프로모션)
-  updateGoalCard(weekTotal);
+updateGoalCard(weekTotal, {workedDays, dailyLevel, attend});
 }
 
 function renderResult(rec){
@@ -1852,8 +1891,7 @@ function renderBranch(data, offset){
   if(slotListEl) slotListEl.innerHTML=html;
 
   // 심야 배너 업데이트
-  if(offset === 0) updateNightBanner(data);
-}
+  }
 
 let branchDateOffset = 0;
 let branchListener = null;
