@@ -2030,7 +2030,7 @@ function saveSetCount(){
 
 function loadSetCount(){
   // Firebase에서 세트수 로드
-  db.ref('branch/config/setCount').once('value').then(snap=>{
+      db.ref('branch/config/setCount').on('value', snap=>{
     if(snap.val()){
       lsSet('branch_set_count', snap.val());
       const el = document.getElementById('set-count-display');
